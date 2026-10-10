@@ -82,16 +82,22 @@ export function JourneyCard({
       </button>
 
       <div className="flex flex-wrap gap-2">
-        <Link
-          href={resumeHref}
-          className={buttonClasses("ghost") + " px-3 py-1.5 text-xs"}
-          onClick={onSelect}
-        >
-          Resume
-        </Link>
+        {journey.status === "completed" ? null : (
+          <Link
+            href={resumeHref}
+            className={buttonClasses("ghost") + " px-3 py-1.5 text-xs"}
+            onClick={onSelect}
+          >
+            Resume
+          </Link>
+        )}
         <Link
           href={replayHref}
-          className={buttonClasses("ghost") + " px-3 py-1.5 text-xs"}
+          className={
+            (journey.status === "completed"
+              ? buttonClasses("primary")
+              : buttonClasses("ghost")) + " px-3 py-1.5 text-xs"
+          }
           onClick={onSelect}
         >
           Play My Journey

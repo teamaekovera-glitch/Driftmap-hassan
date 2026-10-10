@@ -13,11 +13,12 @@ import { Button } from "./button";
 import { ConfirmCapture, type ConfirmCaptureDetails } from "./confirm-capture";
 import { FogMap } from "./fog-map";
 import { useGameState, type CompletionOutcome } from "./game-state";
-import { JourneyStart } from "./journey-start";
+import { JourneyStart, PERSONALITY_ORDER } from "./journey-start";
 import { MissionPanel } from "./mission-panel";
 import { Panel } from "./panel";
 import { PhotoSheet, type PhotoSheetSample } from "./photo-sheet";
 import { RevealTransition } from "./reveal-transition";
+import { DEMO_PHOTO_SOURCES } from "@/data/demo-photos";
 import { DEMO_CITY_BUNDLE } from "@/data/cities";
 import { computeFogState } from "@/lib/fog";
 import type { PersonalityId } from "@/lib/types";
@@ -26,7 +27,7 @@ type SheetPhase = "closed" | "pick" | "confirm";
 
 /** The demo journey's bundled sample, offered only in demo-photo mode. */
 const DEMO_SAMPLE: PhotoSheetSample = {
-  url: "/demo/beypore-shipyard.jpg",
+  url: DEMO_PHOTO_SOURCES["demo-beypore-shipyard"].url,
   label: "Demo",
 };
 
@@ -42,11 +43,18 @@ export function PlayScreen() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const [demoPhotoAllowed, setDemoPhotoAllowed] = useState(false);
+  const [initialPersonality, setInitialPersonality] = useState<PersonalityId | null>(null);
 
   // Demo photos are an explicit opt-in (?demo-photo=1) so a normal player is
-  // never offered someone else's bundled picture as "their" find.
+  // never offered someone else's bundled picture as "their" find. A landing
+  // pick rides in as ?personality= and pre-selects itself on the start card.
   useEffect(() => {
-    setDemoPhotoAllowed(new URLSearchParams(window.location.search).has("demo-photo"));
+    const params = new URLSearchParams(window.location.search);
+    setDemoPhotoAllowed(params.has("demo-photo"));
+    const personality = params.get("personality");
+    if (personality && PERSONALITY_ORDER.includes(personality as PersonalityId)) {
+      setInitialPersonality(personality as PersonalityId);
+    }
   }, []);
 
   // Object URLs are callbacks into the browser's blob store — revoke on replace.
@@ -169,6 +177,7 @@ export function PlayScreen() {
           starting={starting}
           error={startError}
           onStart={handleStart}
+          initialPersonality={initialPersonality}
         />
       </div>
     );

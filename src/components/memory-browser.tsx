@@ -17,7 +17,7 @@
  * nothing; missing photos fall back to placeholders.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, buttonClasses } from "./button";
 import { JourneyCard } from "./journey-card";
@@ -92,6 +92,15 @@ export function MemoryBrowser() {
   const [tick, setTick] = useState(0);
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
+  // Deep link: /memory?journey=<id> pre-selects that journey once the list
+  // loads. Consumed once — later refreshes (delete, import) keep the
+  // visitor's own selection behavior.
+  const requestedJourneyRef = useRef<string | null>(null);
+  const requestedConsumedRef = useRef(false);
+  useEffect(() => {
+    requestedJourneyRef.current = new URLSearchParams(window.location.search).get("journey");
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -100,11 +109,18 @@ export function MemoryBrowser() {
         if (cancelled) return;
         setJourneys(allJourneys);
         setAllMemories(allRecords);
-        setSelectedId((current) =>
-          current !== null && allJourneys.some((journey) => journey.id === current)
+        setSelectedId((current) => {
+          if (!requestedConsumedRef.current) {
+            requestedConsumedRef.current = true;
+            const requested = requestedJourneyRef.current;
+            if (requested && allJourneys.some((journey) => journey.id === requested)) {
+              return requested;
+            }
+          }
+          return current !== null && allJourneys.some((journey) => journey.id === current)
             ? current
-            : (allJourneys[0]?.id ?? null),
-        );
+            : (allJourneys[0]?.id ?? null);
+        });
         setStatus("ready");
       } catch (error) {
         if (cancelled) return;
