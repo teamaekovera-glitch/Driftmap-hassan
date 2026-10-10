@@ -1,11 +1,39 @@
 @import "tailwindcss";
 
 /*
- * Design tokens live in the @theme block (Tailwind v4) so every component
- * uses the same vocabulary: bg-ink, text-ivory, text-muted, border-line,
- * text-accent, bg-ink-raised. Full token set lands with the design commit.
+ * Editorial cartography, not SaaS: near-black charcoal surfaces, warm ivory
+ * text, a restrained amber accent reserved for discoveries and route lines,
+ * hairline borders, and a faint film-grain texture. Tokens live in @theme
+ * (Tailwind v4) so utilities and components share one vocabulary: bg-ink,
+ * bg-ink-raised, text-ivory, text-muted, border-line, text-accent,
+ * font-display.
  */
 @theme {
   --color-ink: #0f0e0c;
+  --color-ink-raised: #161410;
   --color-ivory: #f2ede3;
+  --color-muted: #a59e8f;
+  --color-accent: #e8a33d;
+  --color-line: #292521;
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Discoveries glow amber. */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Faint film grain — texture with zero interaction, transparent to pointers. */
+.grain-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
 }

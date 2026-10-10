@@ -1,5 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces } from "next/font/google";
+import { GameStateProvider } from "@/components/game-state";
+import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
+
+/*
+ * Editorial display face with system fallbacks — a failed font fetch stays
+ * cosmetic, never structural.
+ */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-fraunces",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -20,8 +33,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-ink text-ivory">{children}</body>
+    <html lang="en" className={fraunces.variable}>
+      <body className="bg-ink font-sans text-ivory antialiased">
+        <GameStateProvider>
+          <SiteHeader />
+          {children}
+          <div
+            aria-hidden
+            className="grain-overlay pointer-events-none fixed inset-0 z-40 opacity-[0.04]"
+          />
+        </GameStateProvider>
+      </body>
     </html>
   );
 }
