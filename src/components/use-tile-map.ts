@@ -15,6 +15,13 @@ import type { City } from "@/lib/types";
 export const OPENFREEMAP_POSITRON_STYLE =
   "https://tiles.openfreemap.org/styles/positron";
 
+/**
+ * Same-origin copy of MapLibre's module worker, generated on install by
+ * scripts/copy-maplibre-worker.mjs. MapLibre's own import.meta.url worker
+ * resolution breaks under bundlers; setWorkerUrl() points it here instead.
+ */
+export const MAPLIBRE_WORKER_URL = "/maplibre/maplibre-gl-worker.mjs";
+
 export interface TileMapHandle {
   containerRef: React.RefObject<HTMLDivElement | null>;
   /** The live map while mode is "tiles" — null before creation and after. */
@@ -49,6 +56,15 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
       const maplibre = await import("maplibre-gl");
       if (cancelled || !containerRef.current) return;
 
+      // Before any Map exists: the worker must come from our same-origin copy.
+      maplibre.setWorkerUrl(MAPLIBRE_WORKER_URL);
+
+      // Errors before a successful load (style, worker, network) mean the
+      // tiles are not coming up — fall back. Post-load tile hiccups recover
+      // on their own; flipping the whole game to schematic for those would
+      // be worse than a dark tile.
+      let loaded = false;
+
       const map = new maplibre.Map({
         container: containerRef.current,
         style: OPENFREEMAP_POSITRON_STYLE,
@@ -59,7 +75,8 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
       mapRef.current = map;
 
       map.on("error", () => {
-        if (!cancelled) setMode((current) => nextMapMode(current, "tile-failed"));
+        if (cancelled || loaded) return;
+        setMode((current) => nextMapMode(current, "tile-failed"));
       });
 
       timeoutId = setTimeout(() => {
@@ -67,6 +84,7 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
       }, TILE_LOAD_TIMEOUT_MS);
 
       map.once("load", () => {
+        loaded = true;
         if (cancelled) return;
         if (timeoutId) clearTimeout(timeoutId);
         setMode((current) => nextMapMode(current, "loaded"));

@@ -12,6 +12,9 @@ out
 # a stray .env here would be a zero-cost violation, and it is never committed.
 .env*
 
+# generated on postinstall from the installed maplibre-gl version
+public/maplibre/
+
 # misc
 .DS_Store
 npm-debug.log*

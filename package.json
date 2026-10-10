@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "postinstall": "node scripts/copy-maplibre-worker.mjs",
     "audit:deps": "node scripts/audit-deps.mjs"
   },
   "dependencies": {
