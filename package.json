@@ -1,0 +1,39 @@
+{
+  "name": "driftmap",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The city is the game, the photos are the save file.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "postinstall": "node scripts/copy-maplibre-worker.mjs",
+    "audit:deps": "node scripts/audit-deps.mjs"
+  },
+  "dependencies": {
+    "idb": "^8.0.4",
+    "maplibre-gl": "^6.13.0",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.3.0",
+    "fake-indexeddb": "^6.2.5",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
