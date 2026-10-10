@@ -27,6 +27,11 @@ export interface TileMapHandle {
   /** The live map while mode is "tiles" — null before creation and after. */
   mapRef: React.RefObject<MapLibreMap | null>;
   mode: MapMode;
+  /**
+   * True once the style has loaded in the current attempt — camera work
+   * (flyTo/fitBounds) is safe only after this. Reset on retry and teardown.
+   */
+  loaded: boolean;
   /** Re-attempt the tiles from scratch (fresh map, fresh timeout). */
   retry: () => void;
 }
@@ -35,10 +40,12 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [mode, setMode] = useState<MapMode>("tiles");
+  const [loaded, setLoaded] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   const retry = useCallback(() => {
     mapRef.current = null;
+    setLoaded(false);
     setMode("tiles");
     setAttempt((current) => current + 1);
   }, []);
@@ -87,6 +94,7 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
         loaded = true;
         if (cancelled) return;
         if (timeoutId) clearTimeout(timeoutId);
+        setLoaded(true);
         setMode((current) => nextMapMode(current, "loaded"));
       });
     })().catch((error) => {
@@ -98,13 +106,14 @@ export function useTileMap({ city }: { city: City }): TileMapHandle {
     return () => {
       cancelled = true;
       if (timeoutId) clearTimeout(timeoutId);
+      setLoaded(false);
       const map = mapRef.current;
       mapRef.current = null;
       map?.remove();
     };
   }, [city, mode, attempt]);
 
-  return { containerRef, mapRef, mode, retry };
+  return { containerRef, mapRef, mode, loaded, retry };
 }
 
 /** Live readable of the prefers-reduced-motion media query. */
