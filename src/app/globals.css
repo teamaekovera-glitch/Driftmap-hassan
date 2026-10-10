@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens live in the @theme block (Tailwind v4) so every component
+ * uses the same vocabulary: bg-ink, text-ivory, text-muted, border-line,
+ * text-accent, bg-ink-raised. Full token set lands with the design commit.
+ */
+@theme {
+  --color-ink: #0f0e0c;
+  --color-ivory: #f2ede3;
+}
