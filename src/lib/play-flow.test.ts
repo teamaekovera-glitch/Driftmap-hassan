@@ -13,16 +13,11 @@ import type { PhotoCodec } from "./photo";
 /** A codec that "encodes" to a fixed-size blob without a real canvas. */
 function fakeCodec(bytes = 2_000): PhotoCodec {
   return {
-    async decode(blob) {
-      // Decode reports the *source* dimensions; the pipeline clamps them.
-      const reported = new Uint8Array(await blob.arrayBuffer());
-      return {
-        source: reported,
-        width: 3200,
-        height: 2400,
-      };
+    async decode() {
+      // A 3200×2400 "camera original" — the pipeline clamps to 1600×1200.
+      return { source: {} as CanvasImageSource, width: 3200, height: 2400 };
     },
-    async encode(_source, width, height) {
+    async encode() {
       return new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
     },
   };
