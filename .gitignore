@@ -1,12 +1,19 @@
-node_modules/
-.next/
-out/
-build/
-dist/
-coverage/
-*.log
-.DS_Store
-.env*
-!.env.example
-.vercel
+# dependencies
+node_modules
+
+# next.js build output
+.next
+out
+
+# typescript
 *.tsbuildinfo
+
+# environment — Driftmap builds and runs with zero environment variables;
+# a stray .env here would be a zero-cost violation, and it is never committed.
+.env*
+
+# misc
+.DS_Store
+npm-debug.log*
+.vercel
+coverage
