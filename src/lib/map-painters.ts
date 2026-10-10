@@ -57,7 +57,7 @@ export function paintFogOverlay(
   }
   ctx.restore();
 
-  drawRoutes(ctx, paint, fogState);
+  drawRoutes(ctx, paint, fogState.routes);
 
   fogState.revealed.forEach((stop, index) => {
     drawRevealedStop(ctx, paint.project(stop.coords), placeNames[index]);
@@ -81,7 +81,7 @@ export function paintMemoryOverlay(
 ): void {
   ctx.clearRect(0, 0, paint.width, paint.height);
 
-  drawRoutes(ctx, paint, fogState);
+  drawRoutes(ctx, paint, fogState.routes);
 
   fogState.revealed.forEach((stop, index) => {
     drawMemoryStop(
@@ -93,10 +93,47 @@ export function paintMemoryOverlay(
   });
 }
 
+export interface ReplayPaintState {
+  stops: { coords: [number, number]; name: string | undefined }[];
+  routes: [number, number][][];
+  currentLeg: { from: [number, number]; to: [number, number] } | null;
+  legProgress: number;
+  currentStop: { coords: [number, number]; name: string | undefined } | null;
+}
+
+/**
+ * The replay stage's painter: the film draws the journey as it plays.
+ * Completed legs stay dashed amber; the leg currently being travelled draws
+ * itself as a bright solid line up to the playhead, with a small head dot;
+ * the stop on stage gets a soft pulsing spotlight. Renders the same derived
+ * backdrop the schematic fallback shows.
+ */
+export function paintReplayOverlay(
+  ctx: CanvasRenderingContext2D,
+  paint: PaintContext,
+  state: ReplayPaintState,
+): void {
+  ctx.clearRect(0, 0, paint.width, paint.height);
+
+  drawRoutes(ctx, paint, state.routes);
+
+  if (state.currentLeg) {
+    drawCurrentLeg(ctx, paint, state.currentLeg, state.legProgress);
+  }
+
+  for (const stop of state.stops) {
+    drawRevealedStop(ctx, paint.project(stop.coords), stop.name);
+  }
+
+  if (state.currentStop) {
+    drawStopSpotlight(ctx, paint, state.currentStop.coords);
+  }
+}
+
 function drawRoutes(
   ctx: CanvasRenderingContext2D,
   paint: PaintContext,
-  fogState: FogState,
+  routes: [number, number][][]
 ): void {
   ctx.save();
   ctx.setLineDash([6, 8]);
@@ -106,7 +143,7 @@ function drawRoutes(
   ctx.strokeStyle = `rgba(${ACCENT}, 0.9)`;
   ctx.shadowColor = `rgba(${ACCENT}, 0.8)`;
   ctx.shadowBlur = 6;
-  for (const route of fogState.routes) {
+  for (const route of routes) {
     if (route.length === 0) continue;
     ctx.beginPath();
     route.forEach((coords, index) => {
@@ -116,6 +153,62 @@ function drawRoutes(
     });
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+/**
+ * The leg the film is currently travelling: a bright solid line drawn up to
+ * the playhead's position, tipped with a head dot. Reduced motion skips the
+ * draw-on animation — the whole leg simply appears.
+ */
+function drawCurrentLeg(
+  ctx: CanvasRenderingContext2D,
+  paint: PaintContext,
+  leg: { from: [number, number]; to: [number, number] },
+  progress: number,
+): void {
+  const [x1, y1] = paint.project(leg.from);
+  const [x2, y2] = paint.project(leg.to);
+  const t = paint.reducedMotion ? 1 : Math.min(Math.max(progress, 0), 1);
+  const x = x1 + (x2 - x1) * t;
+  const y = y1 + (y2 - y1) * t;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = `rgb(${ACCENT})`;
+  ctx.shadowColor = `rgba(${ACCENT}, 0.9)`;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+
+  if (t < 1) {
+    ctx.fillStyle = `rgb(${ACCENT})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Soft pulsing spotlight on the stop currently on stage. */
+function drawStopSpotlight(
+  ctx: CanvasRenderingContext2D,
+  paint: PaintContext,
+  coords: [number, number],
+): void {
+  const [x, y] = paint.project(coords);
+  const pulse = paint.reducedMotion ? 0 : Math.sin(paint.timeMs / 600) * 0.5 + 0.5;
+  const r = 16 + pulse * 6;
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(${ACCENT}, ${0.25 + pulse * 0.35})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.stroke();
   ctx.restore();
 }
 
