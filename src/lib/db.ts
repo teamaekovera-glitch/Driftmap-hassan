@@ -20,7 +20,7 @@
  */
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import { PERSONALITY_IDS, THEME_IDS, type Journey, type MemoryRecord, type PhotoAsset } from "./types";
+import { PERSONALITY_IDS, THEME_IDS, type Journey, type MemoryRecord, type PhotoAsset, type ThemeId } from "./types";
 
 const DB_NAME = "driftmap";
 
@@ -237,6 +237,25 @@ export async function saveMemory(memory: MemoryRecord, photo: PhotoAsset): Promi
   });
 }
 
+/**
+ * Re-themes one memory — the user-editable half of the mood system (the
+ * rule-based default lives in memory-views). The photo is never rewritten:
+ * a theme edit touches only the memory record. Returns the updated record,
+ * or undefined when the memory does not exist.
+ */
+export async function updateMemoryTheme(id: string, theme: ThemeId): Promise<MemoryRecord | undefined> {
+  if (!(THEME_IDS as readonly unknown[]).includes(theme)) {
+    throw new Error(`Unknown theme "${String(theme)}" — expected one of: ${THEME_IDS.join(", ")}.`);
+  }
+  return withDb(async (db) => {
+    const memory = await db.get("memories", id);
+    if (!memory) return undefined;
+    const updated: MemoryRecord = { ...memory, theme };
+    await db.put("memories", updated);
+    return updated;
+  });
+}
+
 export async function getPhoto(id: string): Promise<PhotoAsset | undefined> {
   return withDb((db) => db.get("photos", id));
 }
@@ -330,6 +349,22 @@ export async function exportAll(): Promise<DriftmapExport> {
       photos: exportedPhotos,
     };
   });
+}
+
+/**
+ * A lossless export of one journey's slice of the store — the memory
+ * browser's per-journey download. Same format and schema version as
+ * `exportAll`; importing it back restores the whole store (import is
+ * atomic replace), so the payload stays a first-class export.
+ */
+export async function exportJourney(journeyId: string): Promise<DriftmapExport> {
+  const all = await exportAll();
+  return {
+    ...all,
+    journeys: all.journeys.filter((journey) => journey.id === journeyId),
+    memories: all.memories.filter((memory) => memory.journeyId === journeyId),
+    photos: all.photos.filter((photo) => photo.journeyId === journeyId),
+  };
 }
 
 /**

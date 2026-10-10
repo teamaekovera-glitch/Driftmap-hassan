@@ -9,6 +9,7 @@ import {
   closeDb,
   deleteJourney,
   exportAll,
+  exportJourney,
   getJourney,
   getMeta,
   getPhoto,
@@ -19,6 +20,7 @@ import {
   saveMemory,
   setMeta,
   toStorageError,
+  updateMemoryTheme,
   type DriftmapExport,
   type ImportErrorCode,
 } from "./db";
@@ -224,6 +226,39 @@ describe("memory and photo pipeline", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Theme edits (user-editable moods)
+// ---------------------------------------------------------------------------
+
+describe("updateMemoryTheme", () => {
+  it("changes a memory's theme without touching its photo", async () => {
+    await saveJourney(makeJourney({ id: "journey-a" }));
+    const { memory, photo } = makeMemoryPhoto("journey-a", "mem-a1");
+    await saveMemory(memory, photo);
+    const before = await getPhoto("mem-a1");
+
+    const updated = await updateMemoryTheme("mem-a1", "food");
+
+    expect(updated).toMatchObject({ id: "mem-a1", theme: "food" });
+    expect(updated?.clue).toBe(memory.clue);
+    const after = await getPhoto("mem-a1");
+    expect(after).toEqual(before); // same blob — a theme edit never rewrites bytes
+    expect((await listMemories("journey-a"))[0]?.theme).toBe("food");
+  });
+
+  it("returns undefined for a memory that does not exist", async () => {
+    await saveJourney(makeJourney({ id: "journey-a" }));
+    expect(await updateMemoryTheme("never-existed", "food")).toBeUndefined();
+  });
+
+  it("refuses a theme outside the vocabulary", async () => {
+    await saveJourney(makeJourney({ id: "journey-a" }));
+    const { memory, photo } = makeMemoryPhoto("journey-a", "mem-a1");
+    await saveMemory(memory, photo);
+    await expect(updateMemoryTheme("mem-a1", "vibes" as never)).rejects.toThrow(/Unknown theme/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Cascade delete
 // ---------------------------------------------------------------------------
 
@@ -286,6 +321,33 @@ describe("export", () => {
       await base64ToBlob(exported.photos[0].base64, exported.photos[0].mime).arrayBuffer(),
     );
     expect(decoded).toEqual(new Uint8Array(await photo.blob.arrayBuffer()));
+  });
+
+  it("exports one journey's slice losslessly, leaving other journeys out", async () => {
+    await saveJourney(makeJourney({ id: "journey-a" }));
+    await saveJourney(makeJourney({ id: "journey-b", createdAt: 9_000 }));
+    const { memory, photo } = makeMemoryPhoto("journey-a", "mem-a1");
+    await saveMemory(memory, photo);
+    const other = makeMemoryPhoto("journey-b", "mem-b1");
+    await saveMemory(other.memory, other.photo);
+
+    const slice = await exportJourney("journey-a");
+
+    expect(slice.format).toBe("driftmap-export");
+    expect(slice.schemaVersion).toBe(EXPORT_SCHEMA_VERSION);
+    expect(slice.journeys.map((journey) => journey.id)).toEqual(["journey-a"]);
+    expect(slice.memories.map((entry) => entry.id)).toEqual(["mem-a1"]);
+    expect(slice.photos.map((entry) => entry.id)).toEqual(["mem-a1"]);
+    const full = await exportAll();
+    expect(slice.photos[0].base64).toBe(full.photos.find((entry) => entry.id === "mem-a1")?.base64);
+  });
+
+  it("exports an empty slice for a journey with no memories", async () => {
+    await saveJourney(makeJourney({ id: "journey-empty" }));
+    const slice = await exportJourney("journey-empty");
+    expect(slice.journeys.map((journey) => journey.id)).toEqual(["journey-empty"]);
+    expect(slice.memories).toEqual([]);
+    expect(slice.photos).toEqual([]);
   });
 });
 
