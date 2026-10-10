@@ -71,9 +71,9 @@
   }
 }
 
-/* Pausing the film freezes every frame-level animation in place. */
-.replay-stage[data-status="paused"] .replay-fade-anim,
-.replay-stage[data-status="paused"] .replay-anim,
+/* Pausing the film freezes continuous motion (the photo zoom) in place.
+   One-shot entrance animations still complete — pausing must never hide
+   a scene's overlays; it holds the frame, it doesn't blank it. */
 .replay-stage[data-status="paused"] .replay-photo-anim {
   animation-play-state: paused;
 }
