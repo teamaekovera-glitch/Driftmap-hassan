@@ -64,7 +64,10 @@ export function MapCanvasOverlay({ paint }: MapCanvasOverlayProps) {
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      // z-[1]: MapLibre appends its canvas container into the same box after
+      // this node (both start at z auto), so the tiles would paint over the
+      // fog. MapLibre's control corners sit at z 2 and stay above.
+      className="pointer-events-none absolute inset-0 z-[1] h-full w-full"
     />
   );
 }
