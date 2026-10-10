@@ -18,9 +18,15 @@ export interface JourneyStartProps {
   /** Start failure message from the caller, or null. */
   error: string | null;
   onStart: (personality: PersonalityId) => void;
+  /** A pick carried from another screen (landing ?personality=). */
+  initialPersonality?: PersonalityId | null;
 }
 
-const PERSONALITY_BLURBS: Record<PersonalityId, string> = {
+/**
+ * Shared with the landing screen's pick so both pickers describe the
+ * personalities identically — one vocabulary, never drift.
+ */
+export const PERSONALITY_BLURBS: Record<PersonalityId, string> = {
   curious: "Heritage, culture, and places that reward a second look.",
   broke: "Only free places — the run costs exactly nothing.",
   adventurous: "Long hops and maximum variety, out toward the edges.",
@@ -28,7 +34,7 @@ const PERSONALITY_BLURBS: Record<PersonalityId, string> = {
   chaotic: "The seed's dice choose. Expect twists.",
 };
 
-const PERSONALITY_ORDER: PersonalityId[] = [
+export const PERSONALITY_ORDER: PersonalityId[] = [
   "curious",
   "broke",
   "adventurous",
@@ -36,8 +42,14 @@ const PERSONALITY_ORDER: PersonalityId[] = [
   "chaotic",
 ];
 
-export function JourneyStart({ city, starting, error, onStart }: JourneyStartProps) {
-  const [selected, setSelected] = useState<PersonalityId | null>(null);
+export function JourneyStart({
+  city,
+  starting,
+  error,
+  onStart,
+  initialPersonality = null,
+}: JourneyStartProps) {
+  const [selected, setSelected] = useState<PersonalityId | null>(initialPersonality);
   const groupRef = useRef<HTMLDivElement>(null);
 
   // Roving arrow-key selection across the radio-style options.
